@@ -4,26 +4,129 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>🛫 Flight Scanner</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+:root{--bg:#f4f6f9;--card:#fff;--text:#1f2933;--muted:#7b8794;--brand:#1a3a5c;
+--green:#1a7a1a;--greenbg:#e7f7e7;--amber:#b8860b;--line:#e3e8ee;}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1620;--card:#16202c;--text:#e6edf3;
+--muted:#90a0b0;--brand:#102a42;--green:#5fd35f;--greenbg:#15311a;--amber:#e3b341;
+--line:#26303c;}}
+*{box-sizing:border-box;}
+body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+background:var(--bg);color:var(--text);margin:0;}
+.wrap{max-width:1000px;margin:0 auto;padding:0 16px;}
+header{background:var(--brand);color:#fff;padding:20px 0;border-radius:0 0 14px 14px;}
+header h1{margin:0;font-size:26px;}
+.sub{margin:16px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.badge{padding:3px 10px;border-radius:20px;color:#fff;font-size:13px;font-weight:600;}
+.badge.on{background:var(--green);}.badge.off{background:var(--muted);}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+padding:16px 18px;margin:16px 0;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+h2{font-size:18px;margin:0 0 12px;}
+.deals ul{margin:6px 0;padding-left:20px;}.deals li{margin:5px 0;}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.fbtn{border:1px solid var(--line);background:var(--card);color:var(--text);
+border-radius:20px;padding:6px 14px;cursor:pointer;font-size:13px;}
+.fbtn.active{background:var(--brand);color:#fff;border-color:var(--brand);}
+table{width:100%;border-collapse:collapse;font-size:14px;}
+th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);
+vertical-align:top;}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);
+cursor:pointer;user-select:none;white-space:nowrap;}
+th.nosort{cursor:default;}
+tbody tr:hover{background:rgba(127,127,127,.06);}
+.flag{font-size:18px;}
+.price{font-weight:700;font-size:15px;}
+.price.deal{color:var(--green);}.price.near{color:var(--amber);}
+.chips{margin-top:5px;display:flex;gap:5px;flex-wrap:wrap;}
+.chip{font-size:11px;padding:2px 7px;border-radius:10px;background:var(--bg);
+border:1px solid var(--line);color:var(--muted);}
+.chip.best{background:var(--greenbg);color:var(--green);border-color:var(--green);
+font-weight:600;}
+.buy{color:var(--brand);text-decoration:none;font-weight:600;white-space:nowrap;}
+.buy:hover{text-decoration:underline;}
+.muted{color:var(--muted);}
+canvas{max-height:340px;}
+.foot{color:var(--muted);font-size:12px;margin:20px 0;}
+@media(max-width:640px){.hide-sm{display:none;}}
+</style>
 </head>
-<body style="font-family:system-ui,sans-serif;color:#222;max-width:900px;
-             margin:0 auto;padding:16px">
-  <h1 style="background:#1a3a5c;color:#fff;padding:16px;border-radius:8px">
-    🛫 Flight Scanner
-  </h1>
-  <p>Última actualización: <b>2026-06-22 11:41</b> &nbsp; <span style='background:#1a7a1a;color:#fff;padding:2px 8px;border-radius:10px'>2 chollo(s)</span></p>
-  <h3 style='color:#1a7a1a'>⭐ Chollos por debajo de tu umbral</h3><ul><li><b>Madrid → Ereván (Armenia)</b>: 251€ i/v (2026-11-19 → 2026-11-26, umbral 350€) — <a href='https://www.google.com/travel/flights?q=flights%20from%20MAD%20to%20EVN%20on%202026-11-19%20returning%202026-11-26'>comprar ✈</a></li><li><b>Madrid → Belgrado (Serbia)</b>: 140€ i/v (2026-08-06 → 2026-08-13, umbral 170€) — <a href='https://www.google.com/travel/flights?q=flights%20from%20MAD%20to%20BEG%20on%202026-08-06%20returning%202026-08-13'>comprar ✈</a></li></ul>
-  <h3>Ida y vuelta más barata por destino (viaje de 7
-      días, próximos ~5 meses)</h3>
-  <table cellpadding="6" cellspacing="0" border="0"
-       style="border-collapse:collapse;font-size:14px">
-  <tr style="background:#1a3a5c;color:#fff;text-align:left">
-    <th>Destino</th><th>Precio i/v</th><th>Fechas (ida → vuelta)</th>
-    <th>Aerolínea</th><th>Duración ida</th><th>Escalas</th><th>Reservar</th>
-  </tr>
-  <tr style='background:#eafbea;'><td>Madrid → Belgrado (Serbia) ⭐</td><td><b>140€</b></td><td>2026-08-06 → 2026-08-13</td><td>Wizz Air</td><td>3h 10m</td><td>directo</td><td><a href='https://www.google.com/travel/flights?q=flights%20from%20MAD%20to%20BEG%20on%202026-08-06%20returning%202026-08-13'>Comprar&nbsp;✈</a></td></tr><tr style=''><td>Madrid → Sarajevo (Bosnia)</td><td><b>224€</b></td><td>2026-11-19 → 2026-11-26</td><td>Lufthansa</td><td>5h 45m</td><td>1 escala(s)</td><td><a href='https://www.google.com/travel/flights?q=flights%20from%20MAD%20to%20SJJ%20on%202026-11-19%20returning%202026-11-26'>Comprar&nbsp;✈</a></td></tr><tr style='background:#eafbea;'><td>Madrid → Ereván (Armenia) ⭐</td><td><b>251€</b></td><td>2026-11-19 → 2026-11-26</td><td>Pegasus</td><td>10h 45m</td><td>1 escala(s)</td><td><a href='https://www.google.com/travel/flights?q=flights%20from%20MAD%20to%20EVN%20on%202026-11-19%20returning%202026-11-26'>Comprar&nbsp;✈</a></td></tr><tr style=''><td>Madrid → Tiflis (Georgia)</td><td><b>291€</b></td><td>2026-11-19 → 2026-11-26</td><td>LOT</td><td>11h 10m</td><td>1 escala(s)</td><td><a href='https://www.google.com/travel/flights?q=flights%20from%20MAD%20to%20TBS%20on%202026-11-19%20returning%202026-11-26'>Comprar&nbsp;✈</a></td></tr><tr style=''><td>Madrid → Hanói (Vietnam)</td><td><b>692€</b></td><td>2026-11-19 → 2026-11-26</td><td>Air China</td><td>17h 35m</td><td>1 escala(s)</td><td><a href='https://www.google.com/travel/flights?q=flights%20from%20MAD%20to%20HAN%20on%202026-11-19%20returning%202026-11-26'>Comprar&nbsp;✈</a></td></tr><tr style=''><td>Madrid → Ho Chi Minh (Vietnam)</td><td><b>823€</b></td><td>2026-11-19 → 2026-11-26</td><td>Korean Air</td><td>19h 55m</td><td>1 escala(s)</td><td><a href='https://www.google.com/travel/flights?q=flights%20from%20MAD%20to%20SGN%20on%202026-11-19%20returning%202026-11-26'>Comprar&nbsp;✈</a></td></tr><tr style=''><td>Madrid → Vientián (Laos)</td><td><b>1247€</b></td><td>2026-08-06 → 2026-08-13</td><td>China Southern</td><td>36h 45m</td><td>1 escala(s)</td><td><a href='https://www.google.com/travel/flights?q=flights%20from%20MAD%20to%20VTE%20on%202026-08-06%20returning%202026-08-13'>Comprar&nbsp;✈</a></td></tr><tr><td>Madrid → Bishkek (Kirguistán)</td><td colspan='6' style='color:#888'>sin resultados</td></tr>
-</table>
-  <p style="color:#888;font-size:12px;margin-top:16px">
-    Se actualiza automáticamente lunes y jueves. Precios de ida y vuelta
-    orientativos vía Google Flights / SerpApi.
-  </p>
+<body>
+  <header><div class="wrap"><h1>🛫 Flight Scanner</h1></div></header>
+  <div class="wrap">
+    <p class="sub">Última actualización: <b>2026-06-22 14:33</b> <span class='badge on'>1 chollo(s)</span>
+      <span class="muted">· viaje de 7 días · ida y vuelta</span></p>
+
+    <div class='card deals'><h3 style='color:#1a7a1a'>⭐ Chollos por debajo de tu umbral</h3><ul><li><b>🇷🇸 Madrid → Belgrado (Serbia)</b>: 140€ i/v (2026-08-06 → 2026-08-13, umbral 170€) — <a href='https://www.google.com/travel/flights?q=flights%20from%20MAD%20to%20BEG%20on%202026-08-06%20returning%202026-08-13'>comprar ✈</a></li></ul></div>
+
+    <div class="card">
+      <h2>Ida y vuelta más barata por destino</h2>
+      <div class="controls">
+        <button class="fbtn active" onclick="filterRows('all',this)">Todos</button>
+        <button class="fbtn" onclick="filterRows('deals',this)">Solo chollos ⭐</button>
+        <button class="fbtn" onclick="filterRows('direct',this)">Solo directos</button>
+        <span class="muted" style="align-self:center">· clic en una cabecera para ordenar</span>
+      </div>
+      <table id="flights">
+        <thead><tr>
+          <th class="nosort">Destino</th>
+          <th data-col="price" data-type="num" onclick="sortTable(this)">Precio i/v</th>
+          <th class="nosort hide-sm">Fechas</th>
+          <th class="nosort hide-sm">Aerolínea</th>
+          <th data-col="dur" data-type="num" onclick="sortTable(this)" class="hide-sm">Duración</th>
+          <th data-col="stops" data-type="num" onclick="sortTable(this)">Escalas</th>
+          <th class="nosort">Reservar</th>
+        </tr></thead>
+        <tbody><tr data-deal='1' data-stops='0' data-price='140' data-dur='190'><td><span class='flag'>🇷🇸</span> Madrid → Belgrado (Serbia) ⭐<div class='chips'><span class='chip best'>ago: 140€</span><span class='chip'>sep: 165€</span><span class='chip'>nov: 150€</span></div></td><td class='price deal'>140€</td><td>2026-08-06 → 2026-08-13</td><td>Wizz Air</td><td>3h 10m</td><td>directo</td><td><a class='buy' href='https://www.google.com/travel/flights?q=flights%20from%20MAD%20to%20BEG%20on%202026-08-06%20returning%202026-08-13'>Comprar ✈</a></td></tr><tr data-deal='0' data-stops='1' data-price='692' data-dur='1055'><td><span class='flag'>🇻🇳</span> Madrid → Hanói (Vietnam)<div class='chips'><span class='chip'>ago: 780€</span><span class='chip'>sep: 720€</span><span class='chip best'>nov: 692€</span></div></td><td class='price '>692€</td><td>2026-11-19 → 2026-11-26</td><td>Air China</td><td>17h 35m</td><td>1 escala(s)</td><td><a class='buy' href='https://www.google.com/travel/flights?q=flights%20from%20MAD%20to%20HAN%20on%202026-11-19%20returning%202026-11-26'>Comprar ✈</a></td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Evolución del precio (tendencia)</h2>
+      <canvas id='trend'></canvas>
+    </div>
+
+    <p class="foot">Se actualiza automáticamente lunes y jueves. Precios de ida y
+      vuelta orientativos vía Google Flights / SerpApi. Ajusta destinos y umbrales
+      en config.py.</p>
+  </div>
+  <script>window.CHART_DATA = {"labels": ["2026-06-22"], "datasets": [{"label": "🇻🇳 Madrid → Hanói (Vietnam)", "data": [692], "borderColor": "#1f77b4", "backgroundColor": "#1f77b4", "tension": 0.25, "borderWidth": 2, "pointRadius": 2}, {"label": "🇻🇳 Madrid → Ho Chi Minh (Vietnam)", "data": [null], "borderColor": "#ff7f0e", "backgroundColor": "#ff7f0e", "tension": 0.25, "borderWidth": 2, "pointRadius": 2}, {"label": "🇱🇦 Madrid → Vientián (Laos)", "data": [null], "borderColor": "#2ca02c", "backgroundColor": "#2ca02c", "tension": 0.25, "borderWidth": 2, "pointRadius": 2}, {"label": "🇰🇬 Madrid → Bishkek (Kirguistán)", "data": [null], "borderColor": "#d62728", "backgroundColor": "#d62728", "tension": 0.25, "borderWidth": 2, "pointRadius": 2}, {"label": "🇬🇪 Madrid → Tiflis (Georgia)", "data": [null], "borderColor": "#9467bd", "backgroundColor": "#9467bd", "tension": 0.25, "borderWidth": 2, "pointRadius": 2}, {"label": "🇦🇲 Madrid → Ereván (Armenia)", "data": [null], "borderColor": "#8c564b", "backgroundColor": "#8c564b", "tension": 0.25, "borderWidth": 2, "pointRadius": 2}, {"label": "🇧🇦 Madrid → Sarajevo (Bosnia)", "data": [null], "borderColor": "#e377c2", "backgroundColor": "#e377c2", "tension": 0.25, "borderWidth": 2, "pointRadius": 2}, {"label": "🇷🇸 Madrid → Belgrado (Serbia)", "data": [140], "borderColor": "#17becf", "backgroundColor": "#17becf", "tension": 0.25, "borderWidth": 2, "pointRadius": 2}]};</script>
+  <script>
+function sortTable(th){
+  const col=th.dataset.col, type=th.dataset.type||'str';
+  const tb=document.querySelector('#flights tbody');
+  const rows=[...tb.querySelectorAll('tr')];
+  const asc=th.dataset.dir!=='asc';
+  document.querySelectorAll('#flights th').forEach(h=>h.removeAttribute('data-dir'));
+  th.dataset.dir=asc?'asc':'desc';
+  rows.sort((a,b)=>{
+    let x=a.dataset[col], y=b.dataset[col];
+    if(type==='num'){x=parseFloat(x);y=parseFloat(y);}
+    if(x<y)return asc?-1:1; if(x>y)return asc?1:-1; return 0;
+  });
+  rows.forEach(r=>tb.appendChild(r));
+}
+function filterRows(mode,btn){
+  document.querySelectorAll('#flights tbody tr').forEach(r=>{
+    let show=true;
+    if(mode==='deals')show=r.dataset.deal==='1';
+    else if(mode==='direct')show=r.dataset.stops==='0';
+    r.style.display=show?'':'none';
+  });
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+window.addEventListener('DOMContentLoaded',function(){
+  if(window.CHART_DATA && CHART_DATA.labels.length){
+    new Chart(document.getElementById('trend'),{
+      type:'line',
+      data:{labels:CHART_DATA.labels,datasets:CHART_DATA.datasets},
+      options:{responsive:true,maintainAspectRatio:false,spanGaps:true,
+        interaction:{mode:'index',intersect:false},
+        plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11}}}},
+        scales:{y:{title:{display:true,text:'€ ida y vuelta'}}}}
+    });
+  }
+});
+</script>
 </body></html>

@@ -45,6 +45,15 @@ WATCHLIST = [
     ("BEG", "Madrid → Belgrado (Serbia)",      170),
 ]
 
+# --- Bandera (emoji) por código de aeropuerto, para el dashboard ---
+DEST_FLAGS = {
+    "HAN": "🇻🇳", "SGN": "🇻🇳", "VTE": "🇱🇦", "FRU": "🇰🇬",
+    "TBS": "🇬🇪", "EVN": "🇦🇲", "SJJ": "🇧🇦", "BEG": "🇷🇸",
+}
+
+# --- Histórico de precios (para la gráfica de tendencia) ---
+HISTORY_PATH = "price_history.json"
+
 # --- Fechas a consultar por destino ---
 # Días en el futuro desde hoy. 3 fechas repartidas hasta ~5 meses para
 # vigilar la tendencia con horizonte amplio sin gastar búsquedas de más
