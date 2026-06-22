@@ -15,12 +15,16 @@ import config
 SERPAPI_ENDPOINT = "https://serpapi.com/search"
 
 
-def booking_link(origin, destination, date):
-    """Enlace a Google Flights con la ruta y fecha ya rellenadas (solo ida).
+def booking_link(origin, destination, date, return_date=None):
+    """Enlace a Google Flights con la ruta y fechas ya rellenadas.
 
+    Si hay return_date, genera un enlace de ida y vuelta; si no, de ida.
     No consume búsquedas de SerpApi: es solo una URL para reservar.
     """
-    query = f"flights from {origin} to {destination} on {date} oneway"
+    if return_date:
+        query = f"flights from {origin} to {destination} on {date} returning {return_date}"
+    else:
+        query = f"flights from {origin} to {destination} on {date} oneway"
     return "https://www.google.com/travel/flights?q=" + urllib.parse.quote(query)
 
 
@@ -48,8 +52,12 @@ def _time_only(datetime_str):
     return parts[1] if len(parts) > 1 else datetime_str
 
 
-def _parse_flight(item, origin, destination, date):
-    """Transforma un elemento de best_flights/other_flights en nuestro dict."""
+def _parse_flight(item, origin, destination, date, return_date=None):
+    """Transforma un elemento de best_flights/other_flights en nuestro dict.
+
+    En ida y vuelta, `price` es el total del viaje y los datos de tramo
+    (duración, horas, escalas) corresponden al vuelo de IDA.
+    """
     segments = item.get("flights", [])
     if not segments:
         return None
@@ -67,21 +75,41 @@ def _parse_flight(item, origin, destination, date):
         "price": item.get("price"),
         "airline": airline,
         "duration": _format_duration(item.get("total_duration")),
+        "duration_minutes": item.get("total_duration"),
         "stops": stops,
         "departure": _time_only(first.get("departure_airport", {}).get("time")),
         "arrival": _time_only(last.get("arrival_airport", {}).get("time")),
         "origin": origin,
         "destination": destination,
         "date": date,
+        "return_date": return_date,
     }
 
 
-def search_flight(origin, destination, date, adults=config.DEFAULT_ADULTS):
+def _filter_reasonable(results):
+    """Descarta vuelos cuya duración supere DURATION_TOLERANCE × el más rápido.
+
+    Si el filtro dejara la lista vacía (o no hay config), no filtra nada.
+    """
+    tol = getattr(config, "DURATION_TOLERANCE", None)
+    durations = [f["duration_minutes"] for f in results if f.get("duration_minutes")]
+    if not tol or not durations:
+        return results
+
+    limit = min(durations) * tol
+    kept = [f for f in results
+            if not f.get("duration_minutes") or f["duration_minutes"] <= limit]
+    return kept or results
+
+
+def search_flight(origin, destination, date, adults=config.DEFAULT_ADULTS,
+                  return_date=None):
     """Consulta vuelos de `origin` a `destination` en `date`.
 
-    Devuelve una lista de dicts con precio, aerolínea, duración, escalas,
-    horas de salida/llegada, origen, destino y fecha. Lista vacía si no
-    hay resultados o si la API devuelve un error.
+    Si se pasa `return_date`, busca ida y vuelta (el precio es el total
+    del viaje); si no, solo ida. Aplica los filtros de escalas y duración
+    de config. Devuelve una lista de dicts ordenada por precio (vacía si
+    no hay resultados o error).
     """
     params = {
         "engine": "google_flights",
@@ -91,9 +119,20 @@ def search_flight(origin, destination, date, adults=config.DEFAULT_ADULTS):
         "currency": config.DEFAULT_CURRENCY,
         "hl": config.DEFAULT_LANGUAGE,
         "adults": adults,
-        "type": "2",  # 2 = solo ida (one-way)
         "api_key": config.SERPAPI_KEY,
     }
+
+    if return_date:
+        params["type"] = "1"          # 1 = ida y vuelta
+        params["return_date"] = return_date
+    else:
+        params["type"] = "2"          # 2 = solo ida
+
+    # Filtro de escalas en origen (SerpApi: 0=cualquiera, 1=directo,
+    # 2=≤1 escala, 3=≤2 escalas) -> MAX_STOPS + 1.
+    max_stops = getattr(config, "MAX_STOPS", None)
+    if max_stops is not None:
+        params["stops"] = str(max_stops + 1)
 
     try:
         response = requests.get(SERPAPI_ENDPOINT, params=params, timeout=30)
@@ -111,10 +150,11 @@ def search_flight(origin, destination, date, adults=config.DEFAULT_ADULTS):
 
     results = []
     for item in raw_flights:
-        flight = _parse_flight(item, origin, destination, date)
+        flight = _parse_flight(item, origin, destination, date, return_date)
         if flight and flight["price"] is not None:
             results.append(flight)
 
+    results = _filter_reasonable(results)
     results.sort(key=lambda f: f["price"])
     return results
 

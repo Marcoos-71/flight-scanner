@@ -21,10 +21,18 @@ import notifier
 PAGE_PATH = os.path.join("docs", "index.html")
 
 
-def _dates_to_scan():
-    """Lista de fechas 'YYYY-MM-DD' a consultar (de SCAN_DATES_AHEAD)."""
+def _date_pairs():
+    """Pares (ida, vuelta) 'YYYY-MM-DD' a consultar.
+
+    La vuelta = ida + TRIP_LENGTH_DAYS (ida y vuelta).
+    """
     today = date.today()
-    return [(today + timedelta(days=d)).isoformat() for d in config.SCAN_DATES_AHEAD]
+    pairs = []
+    for d in config.SCAN_DATES_AHEAD:
+        out = today + timedelta(days=d)
+        back = out + timedelta(days=config.TRIP_LENGTH_DAYS)
+        pairs.append((out.isoformat(), back.isoformat()))
+    return pairs
 
 
 def scan_all():
@@ -34,10 +42,11 @@ def scan_all():
     chollos: subconjunto de resumen cuyo precio <= umbral del destino.
     """
     database.init_db()
-    dates = _dates_to_scan()
+    pairs = _date_pairs()
 
-    n_searches = len(config.WATCHLIST) * len(dates)
-    print(f"[scan_job] {len(config.WATCHLIST)} destinos × {len(dates)} fechas "
+    n_searches = len(config.WATCHLIST) * len(pairs)
+    print(f"[scan_job] {len(config.WATCHLIST)} destinos × {len(pairs)} fechas "
+          f"(ida y vuelta, {config.TRIP_LENGTH_DAYS} días) "
           f"= {n_searches} búsquedas en esta ejecución.")
 
     resumen = []
@@ -45,8 +54,9 @@ def scan_all():
 
     for iata, label, threshold in config.WATCHLIST:
         best = None
-        for d in dates:
-            flights = api.search_flight(config.ORIGIN, iata, d)
+        for out_date, return_date in pairs:
+            flights = api.search_flight(config.ORIGIN, iata, out_date,
+                                        return_date=return_date)
             database.save_flights(flights)
             cheapest = api.get_cheapest(flights)
             if cheapest and (best is None or cheapest["price"] < best["price"]):
@@ -77,9 +87,13 @@ def scan_all():
 def _flight_cells(f):
     """Celdas HTML con los datos de un vuelo + enlace de compra."""
     stops = "directo" if f["stops"] == 0 else f"{f['stops']} escala(s)"
-    link = api.booking_link(f["origin"], f["destination"], f["date"])
+    link = api.booking_link(f["origin"], f["destination"], f["date"],
+                            f.get("return_date"))
+    fechas = f["date"]
+    if f.get("return_date"):
+        fechas = f"{f['date']} → {f['return_date']}"
     return (f"<td><b>{f['price']:.0f}€</b></td>"
-            f"<td>{f['date']}</td>"
+            f"<td>{fechas}</td>"
             f"<td>{f['airline']}</td>"
             f"<td>{f['duration']}</td>"
             f"<td>{stops}</td>"
@@ -104,8 +118,8 @@ def _table_html(resumen):
 <table cellpadding="6" cellspacing="0" border="0"
        style="border-collapse:collapse;font-size:14px">
   <tr style="background:#1a3a5c;color:#fff;text-align:left">
-    <th>Destino</th><th>Precio</th><th>Fecha</th>
-    <th>Aerolínea</th><th>Duración</th><th>Escalas</th><th>Reservar</th>
+    <th>Destino</th><th>Precio i/v</th><th>Fechas (ida → vuelta)</th>
+    <th>Aerolínea</th><th>Duración ida</th><th>Escalas</th><th>Reservar</th>
   </tr>
   {''.join(rows)}
 </table>"""
@@ -116,9 +130,10 @@ def _deals_html(chollos):
     if not chollos:
         return ""
     lines = "".join(
-        f"<li><b>{r['label']}</b>: {r['flight']['price']:.0f}€ "
-        f"el {r['flight']['date']} (umbral {r['threshold']}€) — "
-        f"<a href='{api.booking_link(r['flight']['origin'], r['flight']['destination'], r['flight']['date'])}'>"
+        f"<li><b>{r['label']}</b>: {r['flight']['price']:.0f}€ i/v "
+        f"({r['flight']['date']} → {r['flight'].get('return_date', '?')}, "
+        f"umbral {r['threshold']}€) — "
+        f"<a href='{api.booking_link(r['flight']['origin'], r['flight']['destination'], r['flight']['date'], r['flight'].get('return_date'))}'>"
         f"comprar ✈</a></li>"
         for r in chollos
     )
@@ -139,11 +154,12 @@ def build_email(resumen, chollos):
 <html><body style="font-family:system-ui,sans-serif;color:#222">
   <h2>🛫 Flight Scanner — {today}</h2>
   {_deals_html(chollos)}
-  <h3>Precio más barato por destino (ida, próximos 3 meses)</h3>
+  <h3>Ida y vuelta más barata por destino (viaje de {config.TRIP_LENGTH_DAYS}
+      días, próximos ~5 meses)</h3>
   {_table_html(resumen)}
   <p style="color:#888;font-size:12px;margin-top:16px">
-    Precios de ida orientativos vía Google Flights / SerpApi.
-    Los umbrales se ajustan en config.py.
+    Precios de ida y vuelta orientativos vía Google Flights / SerpApi.
+    Los umbrales y opciones se ajustan en config.py.
   </p>
 </body></html>"""
 
@@ -175,11 +191,12 @@ def build_page(resumen, chollos):
   </h1>
   <p>Última actualización: <b>{now}</b> &nbsp; {badge}</p>
   {_deals_html(chollos)}
-  <h3>Precio más barato por destino (ida, próximos 3 meses)</h3>
+  <h3>Ida y vuelta más barata por destino (viaje de {config.TRIP_LENGTH_DAYS}
+      días, próximos ~5 meses)</h3>
   {_table_html(resumen)}
   <p style="color:#888;font-size:12px;margin-top:16px">
-    Se actualiza automáticamente lunes y jueves. Precios orientativos
-    vía Google Flights / SerpApi.
+    Se actualiza automáticamente lunes y jueves. Precios de ida y vuelta
+    orientativos vía Google Flights / SerpApi.
   </p>
 </body></html>"""
 

@@ -35,20 +35,33 @@ ORIGIN = "MAD"
 # El umbral es el precio (ida) por debajo del cual se considera "chollo".
 # Ajusta los umbrales a tu gusto: si pones un número alto, recibirás más avisos.
 WATCHLIST = [
-    ("HAN", "Madrid → Hanói (Vietnam)",        300),
-    ("SGN", "Madrid → Ho Chi Minh (Vietnam)",  300),
-    ("VTE", "Madrid → Vientián (Laos)",        450),
-    ("FRU", "Madrid → Bishkek (Kirguistán)",   250),
-    ("TBS", "Madrid → Tiflis (Georgia)",       150),
-    ("EVN", "Madrid → Ereván (Armenia)",       200),
-    ("SJJ", "Madrid → Sarajevo (Bosnia)",      100),
-    ("BEG", "Madrid → Belgrado (Serbia)",       90),
+    ("HAN", "Madrid → Hanói (Vietnam)",        550),
+    ("SGN", "Madrid → Ho Chi Minh (Vietnam)",  550),
+    ("VTE", "Madrid → Vientián (Laos)",        750),
+    ("FRU", "Madrid → Bishkek (Kirguistán)",   450),
+    ("TBS", "Madrid → Tiflis (Georgia)",       280),
+    ("EVN", "Madrid → Ereván (Armenia)",       350),
+    ("SJJ", "Madrid → Sarajevo (Bosnia)",      180),
+    ("BEG", "Madrid → Belgrado (Serbia)",      170),
 ]
 
 # --- Fechas a consultar por destino ---
-# Días en el futuro desde hoy. 3 fechas reparten el presupuesto y captan
-# variaciones de precio a 1, 2 y 3 meses vista.
-SCAN_DATES_AHEAD = [30, 60, 90]
+# Días en el futuro desde hoy. 3 fechas repartidas hasta ~5 meses para
+# vigilar la tendencia con horizonte amplio sin gastar búsquedas de más
+# (lo que cuenta es el nº de fechas, no lo lejanas que sean).
+SCAN_DATES_AHEAD = [45, 90, 150]
+
+# --- Ida y vuelta ---
+# Días de estancia: la fecha de vuelta = fecha de ida + estos días.
+TRIP_LENGTH_DAYS = 7
+
+# --- Calidad de los vuelos (para descartar itinerarios horribles) ---
+# MAX_STOPS: escalas máximas (0 = solo directos, 1 = hasta 1 escala...).
+MAX_STOPS = 1
+# DURATION_TOLERANCE: descarta vuelos que duren más de N veces el más
+# rápido de su ruta (1.6 = hasta un 60% más lento que el mejor). Así se
+# eliminan esperpentos tipo "Sarajevo en 26h con una escala eterna".
+DURATION_TOLERANCE = 1.6
 
 # --- Scheduler local (solo para scheduler.py, opcional) ---
 SCAN_INTERVAL_HOURS = 6
