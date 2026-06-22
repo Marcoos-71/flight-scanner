@@ -6,11 +6,22 @@
 #  proyecto (database.py, scheduler.py, dashboard.py).
 # ============================================================
 
+import urllib.parse
+
 import requests
 
 import config
 
 SERPAPI_ENDPOINT = "https://serpapi.com/search"
+
+
+def booking_link(origin, destination, date):
+    """Enlace a Google Flights con la ruta y fecha ya rellenadas (solo ida).
+
+    No consume búsquedas de SerpApi: es solo una URL para reservar.
+    """
+    query = f"flights from {origin} to {destination} on {date} oneway"
+    return "https://www.google.com/travel/flights?q=" + urllib.parse.quote(query)
 
 
 def _format_duration(minutes):
